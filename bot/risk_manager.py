@@ -92,8 +92,12 @@ class RiskManager:
             factor = 0.8
         elif p >= 0.98:
             factor = 0.5
-        else:
+        elif p >= 0.96:
             factor = 0.3
+        elif p >= 0.94:
+            factor = 0.2
+        else:
+            factor = 0.15  # 93-94%: conservador
 
         size = max_usd * factor
 
