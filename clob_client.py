@@ -200,9 +200,11 @@ class ClobClient:
     def _get_last_trades_page(self, token_ids: list[str]) -> dict[str, float]:
         """Busca last-trades para um batch de tokens."""
         try:
+            # Repeated params: ?token_ids=id1&token_ids=id2&...
+            # A API rejeita o formato comma-joined (400 Bad Request)
             resp = self._session.get(
                 config.CLOB_BASE + "/last-trades-prices",
-                params={"token_ids": ",".join(token_ids)},
+                params=[("token_ids", tid) for tid in token_ids],
                 timeout=config.REQUEST_TIMEOUT_SEC,
             )
             resp.raise_for_status()
