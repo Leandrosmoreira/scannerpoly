@@ -149,12 +149,17 @@ class Executor:
         self._running = False
 
     def _heartbeat_loop(self) -> None:
+        heartbeat_id: str | None = None
         while self._running:
             try:
-                self._client.post_heartbeat(None)
-                log.debug("Heartbeat OK")
+                resp = self._client.post_heartbeat(heartbeat_id)
+                # Servidor retorna heartbeat_id no primeiro POST — reusar nos seguintes
+                if isinstance(resp, dict) and "heartbeat_id" in resp:
+                    heartbeat_id = resp["heartbeat_id"]
+                log.debug("Heartbeat OK (id=%s)", heartbeat_id)
             except Exception as exc:
                 log.warning("Heartbeat falhou: %s", exc)
+                heartbeat_id = None  # reset para proximo ciclo recriar
             time.sleep(5)
 
     # ── Balance ──────────────────────────────────────────────────────────────
