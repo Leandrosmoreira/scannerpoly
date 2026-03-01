@@ -42,3 +42,33 @@ DISPLAY_TZ: str = os.getenv("DISPLAY_TZ", "America/Sao_Paulo")
 # ── Paths ─────────────────────────────────────────────────────────────────────
 DATA_DIR: str = "data"
 DB_PATH: str = os.path.join(DATA_DIR, "scanner.db")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── Lending Bot ──────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Signal Filters ───────────────────────────────────────────────────────────
+BOT_MIN_PROBABILITY: float = float(os.getenv("BOT_MIN_PROBABILITY", "0.97"))
+BOT_IDEAL_PROBABILITY: float = 0.99
+BOT_MAX_MINUTES_TO_END: int = int(os.getenv("BOT_MAX_MINUTES_TO_END", "60"))
+BOT_IDEAL_MINUTES_TO_END: int = 15
+BOT_MIN_BOOK_DEPTH_USD: float = float(os.getenv("BOT_MIN_BOOK_DEPTH_USD", "500"))
+BOT_MAX_BOOK_SPREAD: float = 0.03
+
+# ── Risk ─────────────────────────────────────────────────────────────────────
+BOT_MAX_POSITION_USD: float = float(os.getenv("BOT_MAX_POSITION_USD", "100"))
+BOT_MAX_TOTAL_EXPOSURE_USD: float = float(os.getenv("BOT_MAX_TOTAL_EXPOSURE_USD", "500"))
+BOT_MAX_CONCURRENT_POSITIONS: int = 10
+BOT_MAX_HOURLY_LOSS_USD: float = float(os.getenv("BOT_MAX_HOURLY_LOSS_USD", "50"))
+BOT_LOSS_COOLDOWN_SEC: int = 3600
+
+# ── Execution ────────────────────────────────────────────────────────────────
+BOT_ORDER_TYPE: str = os.getenv("BOT_ORDER_TYPE", "limit")
+BOT_TICK_SIZE: str = "0.01"
+BOT_SCAN_INTERVAL_SEC: int = int(os.getenv("BOT_SCAN_INTERVAL_SEC", "15"))
+
+# ── Scoring weights ──────────────────────────────────────────────────────────
+BOT_W_PROB: float = 0.40
+BOT_W_TIME: float = 0.20
+BOT_W_DEPTH: float = 0.20
+BOT_W_SPREAD: float = 0.20

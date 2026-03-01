@@ -62,3 +62,48 @@ class ScanResult:
     elapsed_sec: float = 0.0
     new_count: int = 0
     dropped_count: int = 0
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ── Lending Bot ──────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class BookAnalysis:
+    """Resultado da analise do order book de um token."""
+    token_id: str
+    best_bid: float | None = None
+    best_ask: float | None = None
+    spread: float | None = None
+    depth_bid_usd: float = 0.0
+    depth_ask_usd: float = 0.0
+    slippage_100: float = 0.0       # slippage para comprar $100
+    slippage_500: float = 0.0       # slippage para comprar $500
+    has_wall: bool = False           # ordem > 5x mediana detectada
+    estimated_fill_price: float | None = None
+    levels_bid: int = 0
+    levels_ask: int = 0
+    is_tradeable: bool = False       # profundidade e spread OK
+
+
+@dataclass
+class LendingSignal:
+    """Sinal de entrada detectado pelo filtro de lending."""
+    market_id: str
+    condition_id: str
+    question: str
+    slug: str
+    url: str
+    token_id: str               # token do lado vencedor (YES ou NO)
+    side: str                   # "YES" ou "NO"
+    probability: float          # preco do lado forte (ex: 0.99)
+    opposite_prob: float        # preco do lado fraco (ex: 0.01)
+    spread: float | None        # spread do book
+    book_depth_usd: float       # profundidade do lado da compra (asks)
+    book: BookAnalysis | None   # analise completa do book
+    time_to_end_sec: int        # segundos ate endDate
+    expected_roi: float         # (1 - prob) / prob
+    annualized_apy: float       # ROI anualizado com base no tempo
+    score: float                # score composto para ranking
+    category: str
+    detected_at: datetime | None = None
