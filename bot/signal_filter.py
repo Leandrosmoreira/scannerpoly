@@ -39,13 +39,26 @@ class SignalFilter:
         candidates: list[LendingSignal] = []
         now = datetime.now(timezone.utc)
 
+        # Contadores de rejeicao para debug
+        rej = {"no_price": 0, "no_liq": 0, "low_prob": 0, "eta": 0, "dedup": 0, "book": 0}
+
         for row in result.markets:
-            signal = self._evaluate(row, now)
+            signal = self._evaluate(row, now, rej)
             if signal is not None:
                 candidates.append(signal)
 
         # Ordenar por score (maior = melhor)
         candidates.sort(key=lambda s: s.score, reverse=True)
+
+        # Log resumo de rejeicoes
+        total_rej = sum(rej.values())
+        if total_rej > 0 or candidates:
+            log.info(
+                "Filtro: %d mercados → %d sinais | rejeitados: prob=%d eta=%d book=%d liq=%d dedup=%d price=%d",
+                len(result.markets), len(candidates),
+                rej["low_prob"], rej["eta"], rej["book"],
+                rej["no_liq"], rej["dedup"], rej["no_price"],
+            )
 
         if candidates:
             log.info(
@@ -58,7 +71,7 @@ class SignalFilter:
 
         return candidates
 
-    def _evaluate(self, row: MarketRow, now: datetime) -> LendingSignal | None:
+    def _evaluate(self, row: MarketRow, now: datetime, rej: dict) -> LendingSignal | None:
         """Avalia um MarketRow e retorna LendingSignal se passar em todos os filtros."""
 
         # ── Filtro 1: Probabilidade ──────────────────────────────────────────
@@ -66,8 +79,10 @@ class SignalFilter:
         no_p = row.quote.no_price
 
         if yes_p is None or no_p is None:
+            rej["no_price"] += 1
             return None
         if not row.quote.has_liquidity:
+            rej["no_liq"] += 1
             return None
 
         # Qual lado eh o forte?
@@ -82,27 +97,39 @@ class SignalFilter:
             opposite = yes_p
             token_id = row.meta.no_token_id
         else:
-            return None  # nenhum lado acima do minimo
+            rej["low_prob"] += 1
+            # Log mercados proximos do threshold para debug
+            best = max(yes_p, no_p)
+            if best >= config.BOT_MIN_PROBABILITY - 0.02:
+                log.debug(
+                    "Quase: %s — YES=%.3f NO=%.3f (min=%.2f)",
+                    row.meta.question[:40], yes_p, no_p, config.BOT_MIN_PROBABILITY,
+                )
+            return None
 
         # ── Filtro 2: Tempo ──────────────────────────────────────────────────
         eta = row.time_to_end_sec
         if eta <= 0:
+            rej["eta"] += 1
             return None  # ja passou
         if eta > config.BOT_MAX_MINUTES_TO_END * 60:
+            rej["eta"] += 1
             return None  # muito longe
 
         # ── Filtro 3: Deduplicacao ───────────────────────────────────────────
         if row.meta.market_id in self._active_market_ids:
+            rej["dedup"] += 1
             return None
 
         # ── Filtro 4: Book analysis (somente para candidatos validos) ────────
         book = self._book.analyze(token_id)
         if not book.is_tradeable:
-            log.debug(
-                "Skip %s: book nao tradeable (depth=$%.0f spread=%.4f)",
-                row.meta.question[:30],
-                book.depth_ask_usd,
-                book.spread or 0,
+            rej["book"] += 1
+            log.info(
+                "Book REJEITADO: %s %s @ %.1f%% — depth=$%.0f (min=$%.0f) spread=%.4f (max=%.4f)",
+                side, row.meta.question[:40], probability * 100,
+                book.depth_ask_usd, config.BOT_MIN_BOOK_DEPTH_USD,
+                book.spread or 0, config.BOT_MAX_BOOK_SPREAD,
             )
             return None
 
