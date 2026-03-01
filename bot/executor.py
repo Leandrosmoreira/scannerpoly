@@ -244,8 +244,8 @@ class Executor:
             oid = resp.get("orderID", "")
             status = resp.get("status", "")
             log.info(
-                "ORDEM COLOCADA: %s %.3f x%.2f = $%.2f | id=%s status=%s",
-                signal.side, signal.probability, size_shares, size_usd, oid, status,
+                "ORDEM COLOCADA: %s %.3f x%.2f = $%.2f | id=%s status=%s | %s",
+                signal.side, signal.probability, size_shares, size_usd, oid, status, signal.url,
             )
             return oid
         except Exception as exc:

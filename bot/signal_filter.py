@@ -61,13 +61,12 @@ class SignalFilter:
             )
 
         if candidates:
-            log.info(
-                "Sinais: %d encontrados (melhor: %.1f%% %s em %s)",
-                len(candidates),
-                candidates[0].probability * 100,
-                candidates[0].side,
-                candidates[0].question[:40],
-            )
+            for i, s in enumerate(candidates):
+                log.info(
+                    "SINAL #%d: %s %s @ %.1f%% | score=%.2f | ETA=%dm | depth=$%.0f | %s",
+                    i + 1, s.side, s.question[:40], s.probability * 100,
+                    s.score, s.time_to_end_sec // 60, s.book_depth_usd, s.url,
+                )
 
         return candidates
 
@@ -103,10 +102,10 @@ class SignalFilter:
             best_side = "YES" if yes_p >= no_p else "NO"
             if best >= 0.85:
                 log.info(
-                    "Prob BAIXA: %s %s @ %.1f%% — YES=%.3f NO=%.3f (min=%.2f) ETA=%dmin",
+                    "Prob BAIXA: %s %s @ %.1f%% — YES=%.3f NO=%.3f (min=%.2f) ETA=%dmin | %s",
                     best_side, row.meta.question[:45], best * 100,
                     yes_p, no_p, config.BOT_MIN_PROBABILITY,
-                    max(row.time_to_end_sec // 60, 0),
+                    max(row.time_to_end_sec // 60, 0), row.meta.url,
                 )
             return None
 
@@ -129,10 +128,10 @@ class SignalFilter:
         if not book.is_tradeable:
             rej["book"] += 1
             log.info(
-                "Book REJEITADO: %s %s @ %.1f%% — depth=$%.0f (min=$%.0f) spread=%.4f (max=%.4f)",
+                "Book REJEITADO: %s %s @ %.1f%% — depth=$%.0f (min=$%.0f) spread=%.4f (max=%.4f) | %s",
                 side, row.meta.question[:40], probability * 100,
                 book.depth_ask_usd, config.BOT_MIN_BOOK_DEPTH_USD,
-                book.spread or 0, config.BOT_MAX_BOOK_SPREAD,
+                book.spread or 0, config.BOT_MAX_BOOK_SPREAD, row.meta.url,
             )
             return None
 
