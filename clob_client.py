@@ -183,9 +183,22 @@ class ClobClient:
             return {}
 
     def get_last_trades_bulk(self, token_ids: list[str]) -> dict[str, float]:
-        """GET /last-trades-prices?token_ids=id1,id2 → {token_id: price}."""
+        """
+        GET /last-trades-prices em batches de LAST_TRADES_BATCH_SIZE tokens.
+        Necessário porque URLs muito longas retornam 414 Request-URI Too Large.
+        """
         if not token_ids:
             return {}
+        result: dict[str, float] = {}
+        batch_size = config.LAST_TRADES_BATCH_SIZE
+        for i in range(0, len(token_ids), batch_size):
+            batch = token_ids[i : i + batch_size]
+            result.update(self._get_last_trades_page(batch))
+        log.debug("Last trades bulk: %d/%d tokens com preço", len(result), len(token_ids))
+        return result
+
+    def _get_last_trades_page(self, token_ids: list[str]) -> dict[str, float]:
+        """Busca last-trades para um batch de tokens."""
         try:
             resp = self._session.get(
                 config.CLOB_BASE + "/last-trades-prices",
@@ -195,7 +208,6 @@ class ClobClient:
             resp.raise_for_status()
             data = resp.json()
             result: dict[str, float] = {}
-            # Resposta: lista de {token_id, price} ou dict {token_id: price}
             if isinstance(data, list):
                 for item in data:
                     tid = item.get("token_id", "")
@@ -215,7 +227,6 @@ class ClobClient:
                             result[tid] = f
                     except (TypeError, ValueError):
                         pass
-            log.debug("Last trades bulk: %d/%d tokens", len(result), len(token_ids))
             return result
         except Exception as exc:
             log.warning("Last trades bulk falhou: %s", exc)

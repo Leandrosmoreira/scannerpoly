@@ -18,8 +18,9 @@ POLYMARKET_BASE: str = "https://polymarket.com"
 REQUEST_TIMEOUT_SEC: int = 10
 MAX_RETRIES: int = 3
 BACKOFF_BASE: float = 1.5   # segundos; espera = BACKOFF_BASE ** attempt
-MAX_WORKERS: int = 10       # threads para CLOB fallbacks individuais
-PAGE_LIMIT: int = 500       # itens por página na Gamma API
+MAX_WORKERS: int = 10           # threads para CLOB fallbacks individuais
+PAGE_LIMIT: int = 500           # itens por página na Gamma API
+LAST_TRADES_BATCH_SIZE: int = 30  # tokens por request GET (evita 414 URI Too Large)
 
 # ── Pricing ───────────────────────────────────────────────────────────────────
 # Se |yes_price + no_price - 1| > SPREAD_THRESHOLD → usar last_trade_price
