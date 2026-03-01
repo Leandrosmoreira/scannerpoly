@@ -150,16 +150,38 @@ class Executor:
 
     def _heartbeat_loop(self) -> None:
         heartbeat_id: str | None = None
+        fail_count = 0
         while self._running:
             try:
                 resp = self._client.post_heartbeat(heartbeat_id)
-                # Servidor retorna heartbeat_id no primeiro POST — reusar nos seguintes
+                # Servidor retorna heartbeat_id — reusar nos seguintes
                 if isinstance(resp, dict) and "heartbeat_id" in resp:
                     heartbeat_id = resp["heartbeat_id"]
+                elif isinstance(resp, str):
+                    # Algumas versoes retornam string JSON
+                    import json as _json
+                    try:
+                        parsed = _json.loads(resp)
+                        if isinstance(parsed, dict) and "heartbeat_id" in parsed:
+                            heartbeat_id = parsed["heartbeat_id"]
+                    except (ValueError, TypeError):
+                        pass
+                fail_count = 0
                 log.debug("Heartbeat OK (id=%s)", heartbeat_id)
             except Exception as exc:
-                log.warning("Heartbeat falhou: %s", exc)
-                heartbeat_id = None  # reset para proximo ciclo recriar
+                fail_count += 1
+                # Tentar extrair heartbeat_id da resposta de erro
+                exc_str = str(exc)
+                if "heartbeat_id" in exc_str and heartbeat_id is None:
+                    import re
+                    match = re.search(r"'heartbeat_id':\s*'([^']+)'", exc_str)
+                    if match:
+                        heartbeat_id = match.group(1)
+                        log.info("Heartbeat ID extraido do erro: %s", heartbeat_id)
+                if fail_count <= 3:
+                    log.warning("Heartbeat falhou (#%d): %s", fail_count, exc)
+                elif fail_count == 4:
+                    log.warning("Heartbeat falhou %dx — suprimindo logs", fail_count)
             time.sleep(5)
 
     # ── Balance ──────────────────────────────────────────────────────────────
