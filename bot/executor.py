@@ -227,10 +227,12 @@ class Executor:
             self.ensure_heartbeat()
 
             neg_risk = getattr(signal, "neg_risk", False)
+            # CLOB aceita preco entre 0.01 e 0.99 — cap para nao rejeitar
+            price = min(round(signal.probability, 2), 0.99)
             resp = self._client.create_and_post_order(
                 OrderArgs(
                     token_id=signal.token_id,
-                    price=round(signal.probability, 2),
+                    price=price,
                     size=size_shares,
                     side=BUY,
                 ),
@@ -242,8 +244,8 @@ class Executor:
             oid = resp.get("orderID", "")
             status = resp.get("status", "")
             log.info(
-                "ORDEM COLOCADA: %s %.3f x%.2f = $%.2f | id=%s status=%s | %s",
-                signal.side, signal.probability, size_shares, size_usd, oid, status, signal.url,
+                "ORDEM COLOCADA: %s price=%.2f x%.0f shares = $%.2f | id=%s status=%s | %s",
+                signal.side, price, size_shares, size_usd, oid, status, signal.url,
             )
             return oid
         except Exception as exc:

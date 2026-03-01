@@ -48,7 +48,7 @@ DB_PATH: str = os.path.join(DATA_DIR, "scanner.db")
 # ══════════════════════════════════════════════════════════════════════════════
 
 # ── Signal Filters ───────────────────────────────────────────────────────────
-BOT_MIN_PROBABILITY: float = float(os.getenv("BOT_MIN_PROBABILITY", "0.97"))
+BOT_MIN_PROBABILITY: float = float(os.getenv("BOT_MIN_PROBABILITY", "0.99"))
 BOT_IDEAL_PROBABILITY: float = 0.99
 BOT_MAX_MINUTES_TO_END: int = int(os.getenv("BOT_MAX_MINUTES_TO_END", "360"))
 BOT_IDEAL_MINUTES_TO_END: int = 15
