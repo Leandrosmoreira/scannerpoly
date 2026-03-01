@@ -92,7 +92,7 @@ def run_bot(args: argparse.Namespace) -> None:
     clob = ClobClient()
     book_analyzer = BookAnalyzer()
     signal_filter = SignalFilter(book_analyzer)
-    pnl = PnLTracker()
+    pnl = PnLTracker(live=live_mode)
 
     executor = Executor(dry_run=not live_mode)
     position_manager = PositionManager(executor)

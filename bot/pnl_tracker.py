@@ -31,9 +31,10 @@ except ImportError:
 
 
 class PnLTracker:
-    """Rastreia sinais detectados e P&L teorico em dry-run."""
+    """Rastreia sinais detectados e P&L teorico."""
 
-    def __init__(self) -> None:
+    def __init__(self, live: bool = False) -> None:
+        self.live = live
         self.signals_logged: int = 0
         self.theoretical_pnl: float = 0.0
         self.theoretical_trades: int = 0
@@ -103,9 +104,10 @@ class PnLTracker:
     # ── Rich ─────────────────────────────────────────────────────────────────
 
     def _print_rich(self, signals: list[LendingSignal], cycle: int) -> None:
+        mode = "LIVE 🔴" if self.live else "DRY RUN"
         _console.print()
         _console.rule(
-            f"[bold magenta]LENDING BOT — DRY RUN[/]  "
+            f"[bold magenta]LENDING BOT — {mode}[/]  "
             f"[dim]ciclo #{cycle}[/]  "
             f"[white]{len(signals)} sinais[/]",
             style="dim magenta",
@@ -208,9 +210,10 @@ class PnLTracker:
     # ── Plain ────────────────────────────────────────────────────────────────
 
     def _print_plain(self, signals: list[LendingSignal], cycle: int) -> None:
+        mode = "LIVE" if self.live else "DRY RUN"
         W = 100
         print(f"\n{'=' * W}")
-        print(f"  LENDING BOT — DRY RUN  |  ciclo #{cycle}  |  {len(signals)} sinais")
+        print(f"  LENDING BOT — {mode}  |  ciclo #{cycle}  |  {len(signals)} sinais")
         print(f"{'─' * W}")
 
         if not signals:
