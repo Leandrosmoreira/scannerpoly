@@ -213,6 +213,30 @@ def run_bot(args: argparse.Namespace) -> None:
                         realized,
                     )
 
+                    # ── Log posicoes abertas com ETA ───────────────────────
+                    open_positions = [
+                        p for p in position_manager.get_all()
+                        if p.order_status in ("pending", "filled") and not p.resolved
+                    ]
+                    if open_positions:
+                        log.info("── POSIÇÕES ABERTAS (%d) ──", len(open_positions))
+                        for p in open_positions:
+                            eta_str = "?"
+                            if p.expected_resolve_at:
+                                eta_delta = p.expected_resolve_at - now
+                                eta_min = max(int(eta_delta.total_seconds() // 60), 0)
+                                if eta_min >= 60:
+                                    eta_str = f"{eta_min // 60}h{eta_min % 60:02d}m"
+                                else:
+                                    eta_str = f"{eta_min}m"
+                            log.info(
+                                "  %s %s @ $%.2f x%.0f shares ($%.2f) | %s | ETA=%s | %s",
+                                p.side, p.question[:40],
+                                p.entry_price, p.size_shares, p.cost_usd,
+                                p.order_status.upper(),
+                                eta_str, p.order_id[:16],
+                            )
+
                 new_signals = sum(
                     1 for s in signals if s.market_id in pnl._seen_market_ids
                 )
