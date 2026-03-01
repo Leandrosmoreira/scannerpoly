@@ -137,6 +137,18 @@ class GammaClient:
             slug = raw.get("slug") or raw.get("market_slug") or raw.get("id", "")
             url = f"{config.POLYMARKET_BASE}/event/{slug}"
 
+            # Detectar neg_risk: mercados multi-outcome (>2 outcomes)
+            # ou campo neg_risk explicito da API
+            neg_risk = bool(raw.get("neg_risk") or raw.get("negRisk", False))
+            if not neg_risk:
+                # Verificar pelo numero de outcomes
+                try:
+                    clob_ids = _json.loads(clob_raw) if isinstance(clob_raw, str) else (clob_raw or [])
+                    if len(clob_ids) > 2:
+                        neg_risk = True
+                except Exception:
+                    pass
+
             return MarketMeta(
                 market_id=str(raw.get("id", "")),
                 condition_id=str(raw.get("conditionId") or raw.get("condition_id", "")),
@@ -148,6 +160,7 @@ class GammaClient:
                 end_date=end_date,
                 yes_token_id=yes_token_id,
                 no_token_id=no_token_id,
+                neg_risk=neg_risk,
                 liquidity=float(raw.get("liquidity") or 0),
                 volume=float(raw.get("volume") or 0),
             )

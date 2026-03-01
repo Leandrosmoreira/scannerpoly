@@ -162,6 +162,7 @@ class SignalFilter:
             annualized_apy=round(annualized, 2),
             score=round(score, 4),
             category=row.meta.category,
+            neg_risk=row.meta.neg_risk,
             detected_at=now,
         )
 

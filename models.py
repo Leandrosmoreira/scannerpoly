@@ -21,6 +21,7 @@ class MarketMeta:
     end_date: datetime      # UTC
     yes_token_id: str
     no_token_id: str
+    neg_risk: bool = False       # True se multi-outcome (>2 outcomes)
     liquidity: float = 0.0
     volume: float = 0.0
 
@@ -106,6 +107,7 @@ class LendingSignal:
     annualized_apy: float       # ROI anualizado com base no tempo
     score: float                # score composto para ranking
     category: str
+    neg_risk: bool = False          # True se multi-outcome market
     detected_at: datetime | None = None
 
 

@@ -224,6 +224,7 @@ class Executor:
             # Garantir heartbeat rodando antes da primeira ordem
             self.ensure_heartbeat()
 
+            neg_risk = getattr(signal, "neg_risk", False)
             resp = self._client.create_and_post_order(
                 OrderArgs(
                     token_id=signal.token_id,
@@ -233,7 +234,7 @@ class Executor:
                 ),
                 PartialCreateOrderOptions(
                     tick_size=config.BOT_TICK_SIZE,
-                    neg_risk=False,
+                    neg_risk=neg_risk,
                 ),
             )
             oid = resp.get("orderID", "")
@@ -271,6 +272,32 @@ class Executor:
         except Exception as exc:
             log.warning("cancel %s falhou: %s", order_id[:16], exc)
             return False
+
+    def get_open_orders(self) -> list[dict]:
+        """Retorna lista de ordens abertas no CLOB."""
+        if self.dry_run or self._client is None:
+            return []
+        try:
+            resp = self._client.get_orders()
+            if isinstance(resp, list):
+                return resp
+            return []
+        except Exception as exc:
+            log.warning("get_open_orders falhou: %s", exc)
+            return []
+
+    def get_trades(self) -> list[dict]:
+        """Retorna historico de trades (fills) do CLOB."""
+        if self.dry_run or self._client is None:
+            return []
+        try:
+            resp = self._client.get_trades()
+            if isinstance(resp, list):
+                return resp
+            return []
+        except Exception as exc:
+            log.warning("get_trades falhou: %s", exc)
+            return []
 
     def cancel_all(self) -> None:
         """Cancela todas as ordens abertas (usado no shutdown)."""
