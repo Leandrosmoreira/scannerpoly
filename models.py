@@ -107,3 +107,27 @@ class LendingSignal:
     score: float                # score composto para ranking
     category: str
     detected_at: datetime | None = None
+
+
+@dataclass
+class BotPosition:
+    """Posicao aberta pelo bot (ordem colocada no CLOB)."""
+    position_id: str            # UUID interno
+    market_id: str
+    condition_id: str
+    question: str
+    token_id: str
+    side: str                   # "YES" ou "NO"
+    entry_price: float          # preco limite da ordem
+    size_shares: float          # shares ordenados
+    cost_usd: float             # entry_price * size_shares
+    order_id: str               # ID da ordem no CLOB (ou "DRY_..." em dry-run)
+    order_status: str           # "pending" | "filled" | "partial" | "cancelled" | "failed"
+    fill_price: float | None = None
+    fill_size: float | None = None
+    entered_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    expected_resolve_at: datetime | None = None
+    resolved: bool = False
+    won: bool | None = None     # True=ganhou, False=perdeu, None=pendente
+    payout: float = 0.0         # $1.00 * fill_size se ganhou, 0 se perdeu
+    pnl: float | None = None    # payout - cost_usd
