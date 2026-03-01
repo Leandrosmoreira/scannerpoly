@@ -199,12 +199,14 @@ class PnLTracker:
 
     def _print_stats_rich(self) -> None:
         pnl_style = "green" if self.theoretical_pnl >= 0 else "red"
+        trades_label = "Trades executados" if self.live else "Trades simulados"
+        pnl_label = "P&L estimado" if self.live else "P&L teorico"
         _console.print(
             f"  [dim]Sinais totais:[/] [bold]{self.signals_logged}[/]"
             f"  [dim]·[/]  "
-            f"[dim]Trades simulados:[/] [bold]{self.theoretical_trades}[/]"
+            f"[dim]{trades_label}:[/] [bold]{self.theoretical_trades}[/]"
             f"  [dim]·[/]  "
-            f"[dim]P&L teorico:[/] [{pnl_style}]${self.theoretical_pnl:+.2f}[/]"
+            f"[dim]{pnl_label}:[/] [{pnl_style}]${self.theoretical_pnl:+.2f}[/]"
         )
 
     # ── Plain ────────────────────────────────────────────────────────────────
@@ -234,7 +236,9 @@ class PnLTracker:
                 )
 
         pnl_sign = "+" if self.theoretical_pnl >= 0 else ""
+        trades_label = "Trades exec" if self.live else "Trades sim"
+        pnl_label = "P&L estimado" if self.live else "P&L teorico"
         print(f"\n  Sinais: {self.signals_logged}  |  "
-              f"Trades sim: {self.theoretical_trades}  |  "
-              f"P&L teorico: {pnl_sign}${self.theoretical_pnl:.2f}")
+              f"{trades_label}: {self.theoretical_trades}  |  "
+              f"{pnl_label}: {pnl_sign}${self.theoretical_pnl:.2f}")
         print(f"{'=' * W}")
