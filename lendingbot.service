@@ -1,0 +1,16 @@
+[Unit]
+Description=Polymarket Lending Bot (LIVE)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/scannerpoly
+ExecStart=/root/scannerpoly/.venv/bin/python bot_runner.py --live --window 60 --interval 15 --min-prob 0.97
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
