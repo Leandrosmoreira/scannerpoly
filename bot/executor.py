@@ -209,11 +209,9 @@ class Executor:
         Coloca ordem limite GTC (maker, sem taxa).
         Retorna order_id.
         """
-        size_shares = round(size_usd / signal.probability, 2)
-        # Minimo de 5 shares por ordem
-        if size_shares < 5.0:
-            size_shares = 5.0
-            size_usd = round(size_shares * signal.probability, 2)
+        # Shares fixo de 5 por ordem
+        size_shares = 5.0
+        size_usd = round(size_shares * signal.probability, 2)
 
         if self.dry_run:
             self._order_counter += 1
