@@ -155,13 +155,16 @@ class ClobClient:
     # ── Bulk endpoints ─────────────────────────────────────────────────────────
 
     def get_midpoints_bulk(self, token_ids: list[str]) -> dict[str, float]:
-        """POST /midpoints → {token_id: mid_price}."""
+        """POST /midpoints → {token_id: mid_price}.
+        Body: [{"token_id": "..."}, ...] conforme py-clob-client oficial.
+        """
         if not token_ids:
             return {}
         try:
+            body = [{"token_id": tid} for tid in token_ids]
             resp = self._session.post(
                 config.CLOB_BASE + "/midpoints",
-                json={"token_ids": token_ids},
+                json=body,
                 timeout=config.REQUEST_TIMEOUT_SEC,
             )
             resp.raise_for_status()
