@@ -184,8 +184,8 @@ class ClobClient:
 
     def get_last_trades_bulk(self, token_ids: list[str]) -> dict[str, float]:
         """
-        GET /last-trades-prices em batches de LAST_TRADES_BATCH_SIZE tokens.
-        Necessário porque URLs muito longas retornam 414 Request-URI Too Large.
+        POST /last-trades-prices em batches de LAST_TRADES_BATCH_SIZE tokens.
+        Body JSON: [{"token_id": "..."}, ...] conforme py-clob-client oficial.
         """
         if not token_ids:
             return {}
@@ -198,13 +198,12 @@ class ClobClient:
         return result
 
     def _get_last_trades_page(self, token_ids: list[str]) -> dict[str, float]:
-        """Busca last-trades para um batch de tokens."""
+        """POST /last-trades-prices com body [{"token_id": "..."}, ...]."""
         try:
-            # Repeated params: ?token_ids=id1&token_ids=id2&...
-            # A API rejeita o formato comma-joined (400 Bad Request)
-            resp = self._session.get(
+            body = [{"token_id": tid} for tid in token_ids]
+            resp = self._session.post(
                 config.CLOB_BASE + "/last-trades-prices",
-                params=[("token_ids", tid) for tid in token_ids],
+                json=body,
                 timeout=config.REQUEST_TIMEOUT_SEC,
             )
             resp.raise_for_status()
