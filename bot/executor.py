@@ -40,7 +40,7 @@ try:
         AssetType,
         BalanceAllowanceParams,
         OrderArgs,
-        OrderType,
+        PartialCreateOrderOptions,
     )
     from py_clob_client.order_builder.constants import BUY
     _CLOB_AVAILABLE = True
@@ -227,15 +227,14 @@ class Executor:
             resp = self._client.create_and_post_order(
                 OrderArgs(
                     token_id=signal.token_id,
-                    price=round(signal.probability, 4),
+                    price=round(signal.probability, 2),
                     size=size_shares,
                     side=BUY,
                 ),
-                options={
-                    "tick_size": config.BOT_TICK_SIZE,
-                    "neg_risk": False,
-                },
-                order_type=OrderType.GTC,
+                PartialCreateOrderOptions(
+                    tick_size=config.BOT_TICK_SIZE,
+                    neg_risk=False,
+                ),
             )
             oid = resp.get("orderID", "")
             status = resp.get("status", "")
