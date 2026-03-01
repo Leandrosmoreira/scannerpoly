@@ -149,35 +149,29 @@ class Executor:
         self._running = False
 
     def _heartbeat_loop(self) -> None:
+        # CLOB: primeiro POST com null; servidor pode dar 400 1-2x no inicio,
+        # depois 200 com heartbeat_id. Delay 3s para CLOB aceitar sessao apos auth.
         heartbeat_id: str | None = None
         fail_count = 0
+        time.sleep(3)
         while self._running:
             try:
                 resp = self._client.post_heartbeat(heartbeat_id)
-                # Servidor retorna heartbeat_id — reusar nos seguintes
-                if isinstance(resp, dict) and "heartbeat_id" in resp:
-                    heartbeat_id = resp["heartbeat_id"]
-                elif isinstance(resp, str):
-                    # Algumas versoes retornam string JSON
-                    import json as _json
-                    try:
-                        parsed = _json.loads(resp)
-                        if isinstance(parsed, dict) and "heartbeat_id" in parsed:
-                            heartbeat_id = parsed["heartbeat_id"]
-                    except (ValueError, TypeError):
-                        pass
+                # Reusar heartbeat_id retornado (aceita ambos formatos da API)
+                if isinstance(resp, dict):
+                    heartbeat_id = resp.get("heartbeat_id") or resp.get("heartbeatId") or heartbeat_id
                 fail_count = 0
-                log.debug("Heartbeat OK (id=%s)", heartbeat_id)
+                log.debug("Heartbeat OK (id=%s)", heartbeat_id[:8] if heartbeat_id else "null")
             except Exception as exc:
                 fail_count += 1
-                # Tentar extrair heartbeat_id da resposta de erro
+                # Tentar extrair heartbeat_id da resposta de erro 400
                 exc_str = str(exc)
-                if "heartbeat_id" in exc_str and heartbeat_id is None:
+                if heartbeat_id is None and "heartbeat_id" in exc_str:
                     import re
                     match = re.search(r"'heartbeat_id':\s*'([^']+)'", exc_str)
                     if match:
                         heartbeat_id = match.group(1)
-                        log.info("Heartbeat ID extraido do erro: %s", heartbeat_id)
+                        log.info("Heartbeat ID extraido do erro: %s", heartbeat_id[:8])
                 if fail_count <= 3:
                     log.warning("Heartbeat falhou (#%d): %s", fail_count, exc)
                 elif fail_count == 4:
