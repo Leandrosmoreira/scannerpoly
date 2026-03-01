@@ -151,7 +151,7 @@ class Executor:
     def _heartbeat_loop(self) -> None:
         while self._running:
             try:
-                self._client.post_heartbeat()
+                self._client.post_heartbeat(None)
                 log.debug("Heartbeat OK")
             except Exception as exc:
                 log.warning("Heartbeat falhou: %s", exc)
@@ -168,7 +168,9 @@ class Executor:
             result = self._client.get_balance_allowance(
                 BalanceAllowanceParams(asset_type=AssetType.COLLATERAL)
             )
-            return float(result.get("balance", 0))
+            # USDC tem 6 decimais — API retorna em micro-USDC
+            raw = float(result.get("balance", 0))
+            return raw / 1e6 if raw > 1_000_000 else raw
         except Exception as exc:
             log.warning("get_balance falhou: %s", exc)
             return 0.0
