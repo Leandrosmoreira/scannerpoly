@@ -98,12 +98,14 @@ class SignalFilter:
             token_id = row.meta.no_token_id
         else:
             rej["low_prob"] += 1
-            # Log mercados proximos do threshold (top 5% mais altos)
+            # Log top 3 mercados por probabilidade para debug
             best = max(yes_p, no_p)
-            if best >= 0.90:
+            best_side = "YES" if yes_p >= no_p else "NO"
+            if best >= 0.85:
                 log.info(
-                    "Prob BAIXA: %s — YES=%.3f NO=%.3f (min=%.2f) ETA=%dmin",
-                    row.meta.question[:50], yes_p, no_p, config.BOT_MIN_PROBABILITY,
+                    "Prob BAIXA: %s %s @ %.1f%% — YES=%.3f NO=%.3f (min=%.2f) ETA=%dmin",
+                    best_side, row.meta.question[:45], best * 100,
+                    yes_p, no_p, config.BOT_MIN_PROBABILITY,
                     max(row.time_to_end_sec // 60, 0),
                 )
             return None

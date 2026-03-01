@@ -133,24 +133,34 @@ class Executor:
 
     def start_heartbeat(self) -> None:
         """
-        Inicia thread de heartbeat. OBRIGATORIO no live.
-        CLOB cancela todas as ordens se heartbeat parar > 10s.
+        Inicia thread de heartbeat. Lazy — so comeca quando ensure_heartbeat() for chamado.
+        CLOB cancela ordens abertas se heartbeat parar > 10s.
+        Sem ordens abertas, heartbeat nao eh necessario.
         """
         if self.dry_run:
             return
         self._running = True
+        # Thread criada mas NAO iniciada — sera iniciada no primeiro ensure_heartbeat()
+        self._hb_started = False
+        log.info("Heartbeat configurado (lazy start — inicia ao colocar primeira ordem)")
+
+    def ensure_heartbeat(self) -> None:
+        """Garante que o heartbeat esta rodando. Chamar antes de colocar ordem."""
+        if self.dry_run or self._hb_started:
+            return
+        self._hb_started = True
         self._hb_thread = threading.Thread(
             target=self._heartbeat_loop, daemon=True, name="clob-heartbeat"
         )
         self._hb_thread.start()
-        log.info("Heartbeat thread iniciada (intervalo 5s)")
+        log.info("Heartbeat thread INICIADA (primeira ordem detectada)")
 
     def stop(self) -> None:
         self._running = False
 
     def _heartbeat_loop(self) -> None:
-        # CLOB: primeiro POST com null; servidor pode dar 400 1-2x no inicio,
-        # depois 200 com heartbeat_id. Delay 3s para CLOB aceitar sessao apos auth.
+        # CLOB: primeiro POST com null retorna heartbeat_id no response.
+        # Delay 3s no arranque para CLOB aceitar sessao.
         heartbeat_id: str | None = None
         fail_count = 0
         time.sleep(3)
@@ -160,22 +170,18 @@ class Executor:
                 # Reusar heartbeat_id retornado (aceita ambos formatos da API)
                 if isinstance(resp, dict):
                     heartbeat_id = resp.get("heartbeat_id") or resp.get("heartbeatId") or heartbeat_id
+                if fail_count > 0:
+                    log.info("Heartbeat recuperou apos %d falhas (id=%s)",
+                             fail_count, heartbeat_id[:8] if heartbeat_id else "null")
                 fail_count = 0
-                log.debug("Heartbeat OK (id=%s)", heartbeat_id[:8] if heartbeat_id else "null")
             except Exception as exc:
                 fail_count += 1
-                # Tentar extrair heartbeat_id da resposta de erro 400
-                exc_str = str(exc)
-                if heartbeat_id is None and "heartbeat_id" in exc_str:
-                    import re
-                    match = re.search(r"'heartbeat_id':\s*'([^']+)'", exc_str)
-                    if match:
-                        heartbeat_id = match.group(1)
-                        log.info("Heartbeat ID extraido do erro: %s", heartbeat_id[:8])
-                if fail_count <= 3:
+                if fail_count <= 5:
                     log.warning("Heartbeat falhou (#%d): %s", fail_count, exc)
-                elif fail_count == 4:
-                    log.warning("Heartbeat falhou %dx — suprimindo logs", fail_count)
+                elif fail_count == 6:
+                    log.warning("Heartbeat falhou %dx — suprimindo logs seguintes", fail_count)
+                # Em 400 continuo, proximo ciclo tenta de novo com null
+                heartbeat_id = None
             time.sleep(5)
 
     # ── Balance ──────────────────────────────────────────────────────────────
@@ -215,6 +221,9 @@ class Executor:
             return oid
 
         try:
+            # Garantir heartbeat rodando antes da primeira ordem
+            self.ensure_heartbeat()
+
             resp = self._client.create_and_post_order(
                 OrderArgs(
                     token_id=signal.token_id,
