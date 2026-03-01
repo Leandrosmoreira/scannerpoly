@@ -38,10 +38,19 @@ class PnLTracker:
         self.theoretical_pnl: float = 0.0
         self.theoretical_trades: int = 0
         self._log_path = os.path.join(config.DATA_DIR, "lending_signals.jsonl")
+        # Dedup: nao loga o mesmo market_id mais de uma vez por sessao
+        self._seen_market_ids: set[str] = set()
         Path(config.DATA_DIR).mkdir(parents=True, exist_ok=True)
 
-    def log_signal(self, signal: LendingSignal) -> None:
-        """Loga sinal detectado em JSONL e simula trade."""
+    def log_signal(self, signal: LendingSignal) -> bool:
+        """
+        Loga sinal detectado em JSONL e simula trade.
+        Retorna True se logado, False se duplicata (mesmo market nesta sessao).
+        """
+        if signal.market_id in self._seen_market_ids:
+            return False
+
+        self._seen_market_ids.add(signal.market_id)
         self.signals_logged += 1
 
         # Simula trade teorico
@@ -81,6 +90,8 @@ class PnLTracker:
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
         except OSError as exc:
             log.warning("Falha ao escrever signal log: %s", exc)
+
+        return True
 
     def print_summary(self, signals: list[LendingSignal], cycle: int) -> None:
         """Imprime resumo dos sinais no terminal."""
@@ -161,9 +172,12 @@ class PnLTracker:
             else:
                 apy_str = f"{apy:.1f}%"
 
+            is_new = s.market_id not in self._seen_market_ids
+            new_marker = "[bold green]★[/] " if is_new else "[dim]·[/]  "
+
             question = s.question
-            if len(question) > 45:
-                question = question[:44] + "…"
+            if len(question) > 43:
+                question = question[:42] + "…"
 
             table.add_row(
                 Text(f"{s.score:.2f}", style=score_style),
@@ -174,7 +188,7 @@ class PnLTracker:
                 Text(apy_str, style="magenta"),
                 Text(f"${s.book_depth_usd:,.0f}", style="dim"),
                 Text(f"{s.spread:.4f}" if s.spread else "—", style="dim"),
-                Text(question),
+                Text.from_markup(f"{new_marker}{question}"),
             )
 
         _console.print(table)

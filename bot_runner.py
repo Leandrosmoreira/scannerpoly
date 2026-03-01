@@ -106,19 +106,23 @@ def run_bot(args: argparse.Namespace) -> None:
                 dropped_count=dropped_count,
             )
 
-            # ── 4. Filtrar sinais ────────────────────────────────────────────
+            # ── 4. Sincroniza IDs ja vistos com o filtro (dedup cross-ciclo) ──
+            signal_filter.set_active_positions(pnl._seen_market_ids)
+
+            # ── 5. Filtrar sinais ────────────────────────────────────────────
             signals = signal_filter.filter(result)
 
-            # ── 5. Logar cada sinal (dry-run) ────────────────────────────────
+            # ── 6. Logar cada sinal novo (dry-run) ───────────────────────────
             for s in signals:
-                pnl.log_signal(s)
+                pnl.log_signal(s)  # ignora duplicatas internamente
 
-            # ── 6. Dashboard ─────────────────────────────────────────────────
+            # ── 7. Dashboard ─────────────────────────────────────────────────
             pnl.print_summary(signals, cycle)
 
+            new_signals = sum(1 for s in signals if s.market_id in pnl._seen_market_ids)
             log.info(
-                "[HEARTBEAT] ciclo #%d | %d mercados | %d sinais | %.1fs",
-                cycle, len(rows), len(signals), elapsed,
+                "[HEARTBEAT] ciclo #%d | %d mercados | %d sinais (%d novos) | %.1fs",
+                cycle, len(rows), len(signals), new_signals, elapsed,
             )
 
             prev = result
