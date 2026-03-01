@@ -5,6 +5,7 @@ Responsável por descobrir mercados que encerram dentro de uma janela de tempo.
 
 from __future__ import annotations
 
+import json as _json
 import logging
 import time
 from datetime import datetime, timezone
@@ -73,13 +74,32 @@ class GammaClient:
         Retorna None se o market for inválido (sem tokens, sem endDate).
         """
         try:
-            tokens: list[dict] = raw.get("tokens") or []
-            if len(tokens) < 2:
-                log.debug("Market %s ignorado: tokens insuficientes", raw.get("id"))
-                return None
+            yes_token_id: str | None = None
+            no_token_id: str | None = None
 
-            yes_token_id = self._extract_token(tokens, "Yes")
-            no_token_id = self._extract_token(tokens, "No")
+            # Formato antigo: tokens: [{token_id, outcome}, ...]
+            tokens: list[dict] = raw.get("tokens") or []
+            if len(tokens) >= 2:
+                yes_token_id = self._extract_token(tokens, "Yes")
+                no_token_id = self._extract_token(tokens, "No")
+
+            # Formato real da API: clobTokenIds (JSON string) + outcomes (JSON string)
+            if not yes_token_id or not no_token_id:
+                clob_raw = raw.get("clobTokenIds")
+                outcomes_raw = raw.get("outcomes")
+                if clob_raw and outcomes_raw:
+                    try:
+                        tid_list = _json.loads(clob_raw) if isinstance(clob_raw, str) else clob_raw
+                        out_list = _json.loads(outcomes_raw) if isinstance(outcomes_raw, str) else outcomes_raw
+                        for tid, outcome in zip(tid_list, out_list):
+                            o = str(outcome).strip().lower()
+                            if o == "yes":
+                                yes_token_id = str(tid).strip() or None
+                            elif o == "no":
+                                no_token_id = str(tid).strip() or None
+                    except Exception as exc:
+                        log.debug("Falha ao parsear clobTokenIds/outcomes para %s: %s", raw.get("id"), exc)
+
             if not yes_token_id or not no_token_id:
                 log.debug("Market %s ignorado: não encontrou YES/NO tokens", raw.get("id"))
                 return None
