@@ -134,8 +134,16 @@ class GammaClient:
                 elif isinstance(t, str) and t:
                     tags.append(t)
 
+            # URL: usar slug do EVENT (pai), nao do market
+            # events[0].slug eh o slug correto para polymarket.com/event/{slug}
+            event_slug = ""
+            events_raw = raw.get("events") or []
+            if events_raw and isinstance(events_raw[0], dict):
+                event_slug = events_raw[0].get("slug", "")
+
             slug = raw.get("slug") or raw.get("market_slug") or raw.get("id", "")
-            url = f"{config.POLYMARKET_BASE}/event/{slug}"
+            url_slug = event_slug or slug
+            url = f"{config.POLYMARKET_BASE}/event/{url_slug}"
 
             # Detectar neg_risk: mercados multi-outcome (>2 outcomes)
             # ou campo neg_risk explicito da API
